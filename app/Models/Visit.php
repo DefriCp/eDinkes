@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Visit extends Model
 {
-    
     protected $fillable = [
         'facility_type','facility_id','tanggal',
         'nama_pasien','no_erm','nik','no_rm_lama','no_dokumen_rm',
@@ -18,13 +17,29 @@ class Visit extends Model
         'patient_desa_id','patient_desa_nama',
         'nama_ayah','jenis_kunjungan','kunjungan','poli',
         'asuransi','no_asuransi','diagnosa','jenis_kasus',
-        ];
-    
+        'kode_diagnosa',
+    ];
 
-    public function facilityName(): string
+    /** Relasi ke tabel health_facilities */
+    public function facility()
     {
-        return $this->facility_type === 'puskesmas'
-            ? optional(\App\Models\Puskesmas::find($this->facility_id))->name ?? '-'
-            : optional(\App\Models\Posyandu::find($this->facility_id))->name ?? '-';
+        return $this->belongsTo(HealthFacility::class, 'facility_id');
+    }
+
+    /** Accessor: nama fasilitas (aman bila null) */
+    public function getFacilityNameAttribute(): string
+    {
+        return optional($this->facility)->name ?? '-';
+    }
+
+    /** Accessor: label jenis fasilitas rapi */
+    public function getFacilityTypeLabelAttribute(): string
+    {
+        return match ($this->facility_type) {
+            'puskesmas'           => 'Puskesmas',
+            'puskesmas_pembantu'  => 'Puskesmas Pembantu',
+            'posyandu'            => 'Posyandu',
+            default               => strtoupper((string) $this->facility_type),
+        };
     }
 }

@@ -1,4 +1,6 @@
-@extends('layouts.app')
+@extends('layouts.app-dashboard')
+
+@section('title','Kunjungan')
 
 @section('content')
 <div class="mb-4 flex items-center gap-2">
@@ -25,7 +27,10 @@
       @forelse($visits as $v)
       <tr class="border-b">
         <td class="p-2">{{ \Carbon\Carbon::parse($v->tanggal)->format('d/m/Y') }}</td>
-        <td class="p-2 text-center uppercase text-xs">{{ $v->facility_type }}<br><span class="text-gray-500 text-[11px]">{{ $v->facilityName() }}</span></td>
+        <td class="p-2 text-center text-xs">
+          <span class="uppercase">{{ $v->facility_type_label }}</span><br>
+          <span class="text-gray-500 text-[11px]">{{ $v->facility_name }}</span>
+        </td>
         <td class="p-2">{{ $v->nama_pasien }}</td>
         <td class="p-2 text-center">{{ $v->jenis_kelamin }}</td>
         <td class="p-2">{{ $v->diagnosa }}</td>
@@ -43,6 +48,8 @@
     </tbody>
   </table>
 
-  <div class="mt-4">{{ $visits->links() }}</div>
+  <div class="mt-4">
+    {{ $visits->links() }}
+  </div>
 </div>
 @endsection

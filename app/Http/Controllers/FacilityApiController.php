@@ -2,22 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\HealthFacility;
 use Illuminate\Http\Request;
-use App\Models\Puskesmas;
-use App\Models\Posyandu;
 
 class FacilityApiController extends Controller
 {
     public function list(Request $request)
     {
-        $type = $request->query('type');
+        $q = HealthFacility::query()->select('id','name','type','address','lat','lng');
 
-        if ($type === 'puskesmas') {
-            return Puskesmas::select('id','name')->orderBy('name')->get();
+        if ($t = $request->query('type')) {
+            $q->where('type', $t);
         }
-        if ($type === 'posyandu') {
-            return Posyandu::select('id','name')->orderBy('name')->get();
-        }
-        return response()->json([], 400);
+
+        return $q->orderBy('name')->get();
     }
 }
