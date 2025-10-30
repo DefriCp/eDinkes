@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use App\Models\Visit;
+use App\Models\Posyandu;
 
 class DashboardController extends Controller
 {
@@ -30,7 +31,7 @@ class DashboardController extends Controller
             ->count();
 
         // -----------------------------
-        // Tujuan fasilitas (3 kategori)
+        // Tujuan fasilitas (3 kategori) - dari visits
         // -----------------------------
         $puskesmasCount = Visit::whereYear('tanggal', $year)
             ->whereMonth('tanggal', $month)
@@ -48,15 +49,17 @@ class DashboardController extends Controller
             ->count();
 
         // -----------------------------
-        // Diagnosa terbanyak (data asli visits)
+        // POSYANDU PER KECAMATAN (SEMUA)
         // -----------------------------
-        $topDiagnosesFromVisits = Visit::whereYear('tanggal', $year)
-            ->whereMonth('tanggal', $month)
-            ->select('diagnosa', DB::raw('COUNT(*) as total'))
-            ->groupBy('diagnosa')
+        $posyanduPerKecamatan = Posyandu::select('kecamatan', DB::raw('COUNT(*) AS total'))
+            ->whereNotNull('kecamatan')
+            ->groupBy('kecamatan')
             ->orderByDesc('total')
-            ->limit(10)
             ->get();
+
+        // kirim SEMUA ke chart
+        $posyanduAllKecamatan   = $posyanduPerKecamatan;
+        $posyanduFacilitiesCount = Posyandu::count();
 
         // -----------------------------
         // Grafik kunjungan per bulan (line)
@@ -74,7 +77,7 @@ class DashboardController extends Controller
         }
 
         // -----------------------------
-        // Top-10 Diagnosa & Obat (jika tabel agregat ada)
+        // Top-10 Diagnosa & Obat (agregat bila ada)
         // -----------------------------
         $diagnoses = collect();
         if (Schema::hasTable('monthly_diagnoses')) {
@@ -119,12 +122,21 @@ class DashboardController extends Controller
             ]);
         }
 
+        // Diagnosa dari data visits asli
+        $topDiagnosesFromVisits = Visit::whereYear('tanggal', $year)
+            ->whereMonth('tanggal', $month)
+            ->select('diagnosa', DB::raw('COUNT(*) as total'))
+            ->groupBy('diagnosa')
+            ->orderByDesc('total')
+            ->limit(10)
+            ->get();
+
         return view('dashboard.index', [
             // waktu
             'month' => $month, 'year' => $year,
             'prevMonth' => $prevMonth, 'prevYear' => $prevYear,
 
-            // ringkasan
+            // ringkasan visits
             'totalVisitsMonth' => $totalVisitsMonth,
             'totalVisitsPrev'  => $totalVisitsPrev,
             'puskesmasCount'   => $puskesmasCount,
@@ -135,12 +147,17 @@ class DashboardController extends Controller
             'lineLabels' => $lineLabels,
             'lineData'   => $lineData,
 
-            // tabel top 10 (agregat bila ada)
+            // tabel top-10 (agregat bila ada)
             'diagnoses'  => $diagnoses,
             'drugs'      => $drugs,
 
-            // tabel top 10 (dari visits asli)
+            // tabel top-10 (dari visits asli)
             'topDiagnosesFromVisits' => $topDiagnosesFromVisits,
+
+            // agregat posyandu
+            'posyanduPerKecamatan'    => $posyanduPerKecamatan, // tabel lengkap
+            'posyanduAllKecamatan'    => $posyanduAllKecamatan, // untuk chart: SEMUA
+            'posyanduFacilitiesCount' => $posyanduFacilitiesCount,
         ]);
     }
 }

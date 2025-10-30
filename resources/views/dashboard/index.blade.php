@@ -25,7 +25,7 @@
 @endphp
 
 {{-- CARDS --}}
-<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
   <div class="rounded-xl p-5 text-white shadow bg-amber-500">
     <div class="text-sm opacity-90">Visits (bulan ini)</div>
     <div class="text-3xl font-extrabold mt-1">{{ number_format($totalVisitsMonth) }}</div>
@@ -48,13 +48,18 @@
   </div>
 
   <div class="rounded-xl p-5 text-white shadow bg-pink-500">
-    <div class="text-sm opacity-90">Posyandu</div>
+    <div class="text-sm opacity-90">Posyandu (kunjungan bulan ini)</div>
     <div class="text-3xl font-extrabold mt-1">{{ number_format($posyanduCount) }}</div>
   </div>
 
-  <div class="rounded-xl p-5 text-white shadow bg-cyan-500">
-    <div class="text-sm opacity-90">Total 10 Diagnosa (agregat)</div>
-    <div class="text-3xl font-extrabold mt-1">{{ number_format($diagnoses->sum('curr')) }}</div>
+  <div class="rounded-xl p-5 text-white shadow bg-teal-600">
+    <div class="text-sm opacity-90">Total Posyandu (fasilitas)</div>
+    <div class="text-3xl font-extrabold mt-1">{{ number_format($posyanduFacilitiesCount) }}</div>
+  </div>
+
+  <div class="rounded-xl p-5 text-white shadow bg-emerald-600">
+    <div class="text-sm opacity-90">Kecamatan (punya Posyandu)</div>
+    <div class="text-3xl font-extrabold mt-1">{{ number_format($posyanduPerKecamatan->count()) }}</div>
   </div>
 </div>
 
@@ -82,7 +87,6 @@
 
 {{-- TOP TABLES --}}
 <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
-  {{-- Diagnosa agregat (opsional) --}}
   <div class="glass rounded-xl p-5 shadow">
     <div class="font-semibold mb-3">Top-10 Diagnosa (Agregat Bulanan)</div>
     <div class="overflow-x-auto">
@@ -113,7 +117,6 @@
     </div>
   </div>
 
-  {{-- Diagnosa dari visits asli --}}
   <div class="glass rounded-xl p-5 shadow">
     <div class="font-semibold mb-3">10 Diagnosa Terbanyak (Data Kunjungan Asli)</div>
     <div class="overflow-x-auto">
@@ -131,6 +134,48 @@
               <td class="py-2">{{ $i+1 }}</td>
               <td>{{ $d->diagnosa ?? '-' }}</td>
               <td class="text-right font-semibold">{{ number_format($d->total) }}</td>
+            </tr>
+          @empty
+            <tr><td colspan="3" class="py-3 text-center text-gray-500">Belum ada data.</td></tr>
+          @endforelse
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{{-- POSYANDU PER KECAMATAN (SEMUA) --}}
+@php
+  $kecCount    = $posyanduAllKecamatan->count();
+  // ~26px per bar + padding: 60px (agar muat semua label)
+  $chartHeight = max(260, $kecCount * 26 + 60);
+@endphp
+<div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
+  <div class="glass rounded-xl p-5 shadow">
+    <div class="font-semibold mb-2">Posyandu per Kecamatan (Semua)</div>
+    {{-- Tetapkan tinggi kontainer (bukan canvas) agar tidak looping --}}
+    <div style="height: {{ $chartHeight }}px;">
+      <canvas id="posyanduKecChart"></canvas>
+    </div>
+  </div>
+
+  <div class="glass rounded-xl p-5 shadow">
+    <div class="font-semibold mb-2">Daftar Jumlah Posyandu per Kecamatan</div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead>
+          <tr class="text-left text-gray-600 border-b">
+            <th class="py-2">No</th>
+            <th>Kecamatan</th>
+            <th class="text-right">Total Posyandu</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">
+          @forelse($posyanduPerKecamatan as $i => $row)
+            <tr>
+              <td class="py-2">{{ $i+1 }}</td>
+              <td>{{ $row->kecamatan }}</td>
+              <td class="text-right font-semibold">{{ number_format($row->total) }}</td>
             </tr>
           @empty
             <tr><td colspan="3" class="py-3 text-center text-gray-500">Belum ada data.</td></tr>
@@ -164,7 +209,6 @@
     options: { plugins:{ legend:{ display:false } }, scales:{ x:{ grid:{ display:false } } } }
   });
 
-  // Bar chart (hanya isi jika ada data agregat obat)
   const barLabels = @json($drugs->pluck('name'));
   const barData   = @json($drugs->pluck('curr'));
   if (barLabels.length) {
@@ -173,6 +217,25 @@
       type: 'bar',
       data: { labels: barLabels, datasets: [{ data: barData, backgroundColor: '#0ea5e9' }] },
       options: { plugins:{ legend:{ display:false } }, indexAxis: 'y' }
+    });
+  }
+
+  const kecLabels = @json($posyanduAllKecamatan->pluck('kecamatan'));
+  const kecData   = @json($posyanduAllKecamatan->pluck('total'));
+
+  if (kecLabels.length) {
+    const ctxKec = document.getElementById('posyanduKecChart').getContext('2d');
+    window.chartPosyanduKec && window.chartPosyanduKec.destroy(); 
+    window.chartPosyanduKec = new Chart(ctxKec, {
+      type: 'bar',
+      data: { labels: kecLabels, datasets: [{ data: kecData, borderWidth: 1 }] },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        plugins: { legend: { display:false } },
+        scales: { x: { beginAtZero:true }, y: { ticks: { autoSkip:false } } }
+      }
     });
   }
 </script>

@@ -5,6 +5,7 @@
 @section('content')
 <div class="mb-4 flex items-center gap-2">
   <a href="{{ route('visits.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded">+ Tambah Kunjungan</a>
+  <a href="{{ route('visits.import.form') }}" class="inline-flex h-10 px-4 items-center rounded bg-emerald-600 text-white hover:bg-emerald-700">Import</a>
 </div>
 
 @if(session('success'))

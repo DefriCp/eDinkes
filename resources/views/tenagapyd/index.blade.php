@@ -1,33 +1,63 @@
 @extends('layouts.app-dashboard')
-@section('title','Daftar Jumlah Tenaga Kesehatan')
+@section('title','Daftar Jumlah Kader Posyandu')
 
 @section('content')
-  <div class="flex items-center justify-between mb-4">
-    <h1 class="text-2xl font-semibold">Daftar Jumlah Kader Posyandu</h1>
+<div class="max-w-6xl mx-auto p-6">
+  @if(session('ok')) <div class="mb-4 p-3 bg-emerald-50 border rounded">{{ session('ok') }}</div> @endif
+
+  <div class="flex items-center justify-between gap-3 mb-4">
+    <form method="get" class="flex gap-2">
+      <input name="q" value="{{ $q }}" class="border rounded px-3 h-10 w-72" placeholder="Cari nama kader / posyandu…">
+      <button class="h-10 px-4 rounded bg-slate-800 text-white">Cari</button>
+    </form>
     <div class="flex gap-2">
-      <a href="#" class="px-3 py-2 rounded bg-black text-white text-sm">Tambah Data</a>
-      <a href="#" class="px-3 py-2 rounded border text-sm">Export</a>
+      <a href="{{ route('tenagapyd.import.form') }}" class="h-10 px-4 rounded border">Import</a>
+      <a href="{{ route('tenagapyd.create') }}" class="h-10 px-4 rounded bg-blue-600 text-white">Tambah</a>
     </div>
   </div>
 
-  <div class="bg-white rounded-xl shadow overflow-x-auto">
+  <div class="overflow-x-auto bg-white rounded shadow">
     <table class="min-w-full text-sm">
-      <thead class="bg-gray-50">
-        <tr class="text-left text-gray-600">
-          <th class="py-3 px-4">No Registrasi</th>
-          <th class="px-4">Nama</th>
-          <th class="px-4">Posyandu</th>
-          <th class="px-4">Status Pelatihan</th>
-          <th class="px-4">Tingkat Kader</th>
+      <thead class="bg-slate-100">
+        <tr>
+          <th class="text-left p-3">Nama Kader</th>
+          <th class="text-left p-3">Posyandu</th>
+          <th class="text-left p-3">JK</th>
+          <th class="text-left p-3">Status Pelatihan Kader</th>
+          <th class="text-left p-3">Aksi</th>
         </tr>
       </thead>
-      <tbody class="divide-y">
-        <tr>
-          <td class="py-3 px-4" colspan="7">
-            <div class="text-center text-gray-500">Belum ada data. Silakan klik <b>Tambah Data</b>.</div>
-          </td>
-        </tr>
+      <tbody>
+        @forelse($rows as $r)
+          <tr class="border-t">
+            <td class="p-3">
+              <a href="{{ route('tenagapyd.show', $r->id) }}" class="underline font-semibold">
+                {{ $r->nama_kader }}
+              </a>
+            </td>
+            <td class="p-3">{{ $r->nama_posyandu }}</td>
+            <td class="p-3">{{ $r->jenis_kelamin }}</td>
+            <td class="p-3">
+              <span class="inline-block px-2 py-0.5 rounded border">
+                {{ $r->status_pelatihan_posyandu ?: '—' }}
+              </span>
+            </td>
+            <td class="p-3">
+              <a href="{{ route('tenagapyd.edit',$r->id) }}" class="px-3 py-1 rounded border">Edit</a>
+              <form action="{{ route('tenagapyd.destroy',$r->id) }}" method="post" class="inline"
+                    onsubmit="return confirm('Hapus data ini?')">
+                @csrf @method('DELETE')
+                <button class="px-3 py-1 rounded border border-red-400 text-red-600">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        @empty
+          <tr><td colspan="5" class="p-3 text-center text-slate-500">Belum ada data</td></tr>
+        @endforelse
       </tbody>
     </table>
   </div>
+
+  <div class="mt-4">{{ $rows->links() }}</div>
+</div>
 @endsection
